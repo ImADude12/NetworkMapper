@@ -36,16 +36,30 @@ const session = driver.session()
 
 
 app.get('/', (req, res) => {
-    res.send('Hello world')
-    session.run("CREATE (n:Person {name: 'Dudi', title: 'Developer'})")
-        .then((res) => {
-            console.log(res);
-            session.close
-        })
-        .catch((res) => {
-            console.log(res);
-            session.close
-        })
+    const nodes = [];
+    const links = [];
+    session.run("MATCH (n) RETURN n LIMIT 25")
+        .then(({ records }) => {
+            records.map((node) => {
+                const { properties, labels, identity } = node.get('n')
+                const nodeToInsert = {
+                    id: identity['low'],
+                    os: properties.os,
+                    ip: properties.ip,
+                    //     // mac: properties.mac,
+                    type: labels[0]
+                }
+                nodes.unshift(nodeToInsert)
+            })
+            session.run(`MATCH (m)-->(n) RETURN id(m),id(n)`).then(({ records }) => {
+                const source = records[0].get('id(m)')['low'];
+                const target = records[0].get('id(n)')['low'];
+                links.push({
+                    source, target
+                })
+                res.send({ nodes, links })
+            }).catch(() => { res.end() })
+        }).catch(() => { res.end() })
 })
 
 const port = process.env.PORT || 3030
