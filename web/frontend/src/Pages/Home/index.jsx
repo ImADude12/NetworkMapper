@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Graph } from "./Graph";
 import axios from "axios";
 import { Navbar } from "../../Shared/Navbar";
@@ -7,6 +7,7 @@ import styled, { useTheme } from "styled-components";
 import PuffLoader from "react-spinners/PuffLoader";
 import search from "../../assets/icons/search.svg";
 import { Image } from "../../Shared/Image";
+import Modal from "./Modal";
 
 const GraphWrapper = styled.div`
   height: 800px;
@@ -37,15 +38,37 @@ export const Home = () => {
     });
   };
 
+  const [isOpen, setIsOpen] = useState(false);
+  const [modalChildren, setModalChildren] = useState();
+
+  const onOpenModal = useCallback((props) => {
+    setIsOpen(true);
+    console.log(props);
+    setModalChildren(
+      <>
+        <img style={{ height: "200px", width: "80%" }} alt="" src={props.img} />
+        <div>
+          <p>IP: {props.ip}</p>
+          <p>OS: {props.os}</p>
+        </div>
+      </>
+    );
+  }, []);
+
   return (
     <>
+      <Modal
+        isOpen={isOpen}
+        children={modalChildren}
+        handleClose={() => setIsOpen(false)}
+      />
       <Navbar />
       <Container>
         <GraphWrapper>
           {isLoading ? (
             <PuffLoader color={theme.colors.primary} />
           ) : (
-            <Graph data={data} />
+            <Graph data={data} onOpenModal={onOpenModal} />
           )}
         </GraphWrapper>
         <Button size="lg" onClick={() => onScan()}>

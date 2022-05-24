@@ -4,7 +4,7 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors')
 const neo4j = require('neo4j-driver')
-const { neo4jConfig } = require('./neo4j-config')
+// const { neo4jConfig } = require('./neo4j-config')
 
 //Express instance
 const app = express();
@@ -28,14 +28,25 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 
-const driver = neo4j.driver(
-    neo4jConfig.uri,
-    neo4j.auth.basic(neo4jConfig.credentials.username, neo4jConfig.credentials.password)
-)
-const session = driver.session()
+let driver;
+
+app.post('/auth', (req, res) => {
+    const { username, password } = req.body.credentials;
+    const token = neo4j.auth.basic(username, password)
+    driver = neo4j.driver(
+        "neo4j+s://9242d2ae.databases.neo4j.io:7687",
+        token
+    )
+    driver.verifyConnectivity()
+        .then((response) => res.send(response))
+        .catch(() => {
+            res.status(401).send('Unauthorized!')
+        })
+})
 
 
 app.get('/', (req, res) => {
+    const session = driver.session()
     const nodes = [];
     const links = [];
     session.run("MATCH (n) RETURN n LIMIT 25")
@@ -51,6 +62,7 @@ app.get('/', (req, res) => {
                 }
                 nodes.unshift(nodeToInsert)
             })
+            const session = driver.session()
             session.run(`MATCH (m)-->(n) RETURN id(m),id(n)`).then(({ records }) => {
                 const source = records[0].get('id(m)')['low'];
                 const target = records[0].get('id(n)')['low'];
@@ -58,9 +70,11 @@ app.get('/', (req, res) => {
                     source, target
                 })
                 res.send({ nodes, links })
-            }).catch(() => { res.end() })
-        }).catch(() => { res.end() })
+            }).then(() => session.close())
+        }).then(() => session.close())
 })
+
+
 
 const port = process.env.PORT || 3030
 http.listen(port, () => {
