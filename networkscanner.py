@@ -95,8 +95,8 @@ class Communicator():
         # TODO: Open socket at same port as the scan manager, receive packet and relay it back to scan manager
         pass
 
-    def close_all(self)
-    self.s.close()
+    def close_all(self):
+        self.s.close()
 
 
 class NmapScanner():
