@@ -2,11 +2,22 @@ import React, { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import computer from "../../assets/images/computer.svg";
 import router from "../../assets/images/router.svg";
+import styled from "styled-components";
 function validate(x, a = 50, b = 450) {
   if (x < a) x = a;
   if (x > b) x = b;
   return x;
 }
+
+const StyledSvg = styled.svg`
+  height: 100%;
+  width: 100%;
+  .node-img {
+    &:hover {
+      cursor: pointer;
+    }
+  }
+`;
 
 const drag = (simulation) => {
   function dragstarted(event) {
@@ -81,6 +92,7 @@ export const Graph = ({ data, onOpenModal }) => {
       .append("svg:image")
       .attr("width", 20)
       .attr("height", 24)
+      .attr("class", "node-img")
       .call(drag(simulation))
       .attr("xlink:href", (node) =>
         node.type === "Computer" ? computer : router
@@ -101,5 +113,5 @@ export const Graph = ({ data, onOpenModal }) => {
     });
   }, [data, onOpenModal, size]);
 
-  return <svg style={{ height: "100%", width: "100%" }} ref={svgRef}></svg>;
+  return <StyledSvg ref={svgRef}></StyledSvg>;
 };

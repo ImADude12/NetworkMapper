@@ -1,7 +1,8 @@
 import styled from "styled-components";
-import { Button } from "./Button";
 import { Image } from "./Image";
 import Logo from "../assets/images/Logo.svg";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Wrapper = styled.div`
   display: flex;
@@ -23,7 +24,7 @@ const Container = styled.nav`
   height: 80px;
 `;
 
-const Navitem = styled.a`
+const NavItem = styled.a`
   color: white;
   display: flex;
   align-items: center;
@@ -47,17 +48,26 @@ const LogoContainer = styled.div`
   height: 100%;
 `;
 
-export const Navbar = () => (
-  <Container>
-    <Wrapper>
-      <LogoContainer>
-        <Image src={Logo} />
-      </LogoContainer>
-      <Navitem>Home</Navitem>
-      <Navitem>Configuration</Navitem>
-    </Wrapper>
-    <Wrapper isRight>
-      <Navitem style={{ padding: "0 56px" }}>Logout</Navitem>
-    </Wrapper>
-  </Container>
-);
+export const Navbar = () => {
+  const navigate = useNavigate();
+
+  const logout = () => {
+    axios.post("http://localhost:3030/logout").then(() => navigate("/"));
+  };
+  return (
+    <Container>
+      <Wrapper>
+        <LogoContainer>
+          <Image src={Logo} />
+        </LogoContainer>
+        <NavItem onClick={() => navigate("/home")}>Home</NavItem>
+        <NavItem>Configuration</NavItem>
+      </Wrapper>
+      <Wrapper isRight>
+        <NavItem onClick={() => logout()} style={{ padding: "0 56px" }}>
+          Logout
+        </NavItem>
+      </Wrapper>
+    </Container>
+  );
+};

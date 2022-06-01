@@ -44,6 +44,13 @@ app.post('/auth', (req, res) => {
         })
 })
 
+app.post('/logout', (req, res) => {
+    driver.close().then((response) => {
+        console.log(response);
+        res.send()
+    });
+})
+
 
 app.get('/', (req, res) => {
     const session = driver.session()

@@ -8,7 +8,7 @@ import PuffLoader from "react-spinners/PuffLoader";
 import search from "../../assets/icons/search.svg";
 import { Image } from "../../Shared/Image";
 import Modal from "./Modal";
-
+import finger from "../../assets/images/finger.png";
 const GraphWrapper = styled.div`
   height: 800px;
   width: 90%;
@@ -25,12 +25,41 @@ const Container = styled.div`
   align-items: center;
 `;
 
+const FingerContainer = styled.div`
+  display: flex;
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
+const FingerImg = styled.img`
+  transform: rotate(90deg);
+  animation: MoveUpDown 1s linear infinite;
+  position: absolute;
+  right: 35%;
+
+  @media ${({ theme }) => theme.media.fromMobile} {
+    right: 45%;
+  }
+  @keyframes MoveUpDown {
+    0%,
+    100% {
+      transform: translateY(100px);
+    }
+    50% {
+      transform: translateY(0);
+    }
+  }
+`;
+
 export const Home = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
   const theme = useTheme();
 
   const onScan = () => {
+    setIsStarted(true);
     setIsLoading(true);
     axios.get("http://localhost:3030/").then((res) => {
       setData(res.data);
@@ -47,9 +76,9 @@ export const Home = () => {
     setModalChildren(
       <>
         <img style={{ height: "200px", width: "80%" }} alt="" src={props.img} />
-        <div>
-          <p>IP: {props.ip}</p>
-          <p>OS: {props.os}</p>
+        <div style={{ textAlign: "center" }}>
+          <p>{props.ip}</p>
+          <p>{props.os}</p>
         </div>
       </>
     );
@@ -62,13 +91,19 @@ export const Home = () => {
         children={modalChildren}
         handleClose={() => setIsOpen(false)}
       />
-      <Navbar />
+      <Navbar currPage={"home"} />
       <Container>
         <GraphWrapper>
-          {isLoading ? (
-            <PuffLoader color={theme.colors.primary} />
+          {isStarted ? (
+            isLoading ? (
+              <PuffLoader color={theme.colors.primary} />
+            ) : (
+              <Graph data={data} onOpenModal={onOpenModal} />
+            )
           ) : (
-            <Graph data={data} onOpenModal={onOpenModal} />
+            <FingerContainer>
+              <FingerImg src={finger} />
+            </FingerContainer>
           )}
         </GraphWrapper>
         <Button size="lg" onClick={() => onScan()}>
