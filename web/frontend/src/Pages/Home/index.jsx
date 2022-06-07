@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
 import { Graph } from "./Graph";
 import axios from "axios";
 import { Navbar } from "../../Shared/Navbar";

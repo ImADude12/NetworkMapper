@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import * as d3 from "d3";
 import computer from "../../assets/images/computer.svg";
 import router from "../../assets/images/router.svg";
+const size = { height: 500, width: 500 };
 
 export const Graph = ({ data }) => {
-  const [size] = useState({ height: 500, width: 500 });
   const svgRef = useRef();
 
   useEffect(() => {
