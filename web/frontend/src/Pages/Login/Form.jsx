@@ -3,8 +3,11 @@ import { Button } from "../../Shared/Button";
 import { Input } from "../../Shared/Input";
 import networkPerson from "../../assets/images/network-person.png";
 import { Image } from "../../Shared/Image";
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const Container = styled.div`
+const Container = styled.form`
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -19,13 +22,50 @@ const Container = styled.div`
   }
 `;
 
-export const Form = () => (
-  <Container>
-    <Image src={networkPerson}></Image>
-    <Input placeholder="Email" />
-    <Input placeholder="Password" type="password" />
-    <Button type="submit" size="sm">
-      Login
-    </Button>
-  </Container>
-);
+export const Form = () => {
+  const [credentials, setCredentials] = useState({
+    username: "",
+    password: "",
+  });
+  let navigate  = useNavigate();
+
+  const onChangeHandler = (ev) => {
+    const { name, value } = ev.target;
+    setCredentials((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onSubmitCred = (ev) => {
+    ev.preventDefault();
+    axios
+      .post("http://localhost:3030/auth", { credentials })
+      .then((res) => {
+        if (res.status === 200) {
+          navigate("/home");
+        }
+      })
+      .catch((err) => console.log(err));
+  };
+
+  return (
+    <Container onSubmit={onSubmitCred}>
+      <Image src={networkPerson}></Image>
+      <Input
+        value={credentials.username}
+        name="username"
+        onChange={onChangeHandler}
+        placeholder="Username"
+      />
+      <Input
+        value={credentials.password}
+        autoComplete="true"
+        name="password"
+        onChange={onChangeHandler}
+        placeholder="Password"
+        type="password"
+      />
+      <Button type="submit" size="sm">
+        Login
+      </Button>
+    </Container>
+  );
+};
