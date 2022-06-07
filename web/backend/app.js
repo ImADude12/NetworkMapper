@@ -4,7 +4,6 @@ const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors')
 const neo4j = require('neo4j-driver')
-const { neo4jConfig } = require('./neo4j-config')
 
 //Express instance
 const app = express();

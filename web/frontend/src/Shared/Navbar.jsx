@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import { Button } from "./Button";
 import { Image } from "./Image";
 import Logo from "../assets/images/Logo.svg";
 
@@ -23,7 +22,7 @@ const Container = styled.nav`
   height: 80px;
 `;
 
-const Navitem = styled.a`
+const NavItem = styled.a`
   color: white;
   display: flex;
   align-items: center;
@@ -53,11 +52,11 @@ export const Navbar = () => (
       <LogoContainer>
         <Image src={Logo} />
       </LogoContainer>
-      <Navitem>Home</Navitem>
-      <Navitem>Configuration</Navitem>
+      <NavItem>Home</NavItem>
+      <NavItem>Configuration</NavItem>
     </Wrapper>
     <Wrapper isRight>
-      <Navitem style={{ padding: "0 56px" }}>Logout</Navitem>
+      <NavItem style={{ padding: "0 56px" }}>Logout</NavItem>
     </Wrapper>
   </Container>
 );
