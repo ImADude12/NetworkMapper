@@ -1,4 +1,4 @@
-import React, {  useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Graph } from "./Graph";
 import axios from "axios";
 import { Navbar } from "../../Shared/Navbar";
@@ -9,6 +9,7 @@ import search from "../../assets/icons/search.svg";
 import { Image } from "../../Shared/Image";
 import Modal from "./Modal";
 import finger from "../../assets/images/finger.png";
+import { useNavigate } from "react-router-dom";
 const GraphWrapper = styled.div`
   height: 800px;
   width: 90%;
@@ -36,7 +37,7 @@ const FingerImg = styled.img`
   transform: rotate(90deg);
   animation: MoveUpDown 1s linear infinite;
   position: absolute;
-  right: 35%;
+  right: 0;
 
   @media ${({ theme }) => theme.media.fromMobile} {
     right: 45%;
@@ -58,13 +59,18 @@ export const Home = () => {
   const [isStarted, setIsStarted] = useState(false);
   const theme = useTheme();
 
+  const navigate = useNavigate();
+
   const onScan = () => {
     setIsStarted(true);
     setIsLoading(true);
-    axios.get("http://localhost:3030/").then((res) => {
-      setData(res.data);
-      setIsLoading(false);
-    });
+    axios
+      .get("http://localhost:3030/scan")
+      .then((res) => {
+        setData(res.data);
+        setIsLoading(false);
+      })
+      .catch(() => navigate("/"));
   };
 
   const [isOpen, setIsOpen] = useState(false);

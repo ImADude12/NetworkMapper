@@ -9,7 +9,7 @@ export const Button = styled.button`
         return `padding: 15px 30px; font-size: 2rem;`;
       case "md":
       default:
-        return `padding: 10px; 20px; font-size: 1.5rem;`;
+        return `padding: 10px 20px; font-size: 1.5rem;`;
     }
   }}
   background: ${({ variant, theme }) =>

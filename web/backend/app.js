@@ -3,9 +3,8 @@ const path = require('path');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
 const cors = require('cors')
-const neo4j = require('neo4j-driver')
-// const { neo4jConfig } = require('./neo4j-config')
-
+const checkAuth = require('./middleware/checkAuth');
+const DriverConnection = require('./db-driver');
 //Express instance
 const app = express();
 const http = require('http').createServer(app)
@@ -28,31 +27,34 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 
-let driver;
 
 app.post('/auth', (req, res) => {
-    const { username, password } = req.body.credentials;
-    const token = neo4j.auth.basic(username, password)
-    driver = neo4j.driver(
-        "neo4j+s://9242d2ae.databases.neo4j.io:7687",
-        token
-    )
-    driver.verifyConnectivity()
-        .then((response) => res.send(response))
-        .catch(() => {
-            res.status(401).send('Unauthorized!')
+    const { credentials } = req.body;
+    DriverConnection.getInstance(credentials);
+    DriverConnection.isConnected()
+        .then(() => res.send())
+        .catch((err) => {
+            res.status(401).end()
         })
 })
 
 app.post('/logout', (req, res) => {
-    driver.close().then((response) => {
-        console.log(response);
-        res.send()
-    });
+    const DriverInstance = DriverConnection.getInstance();
+    if (!DriverInstance) res.end();
+    const driver = DriverInstance.driver;
+    if (driver)
+        driver.close().then(() => {
+            res.end()
+        });
+    else
+        res.end()
 })
 
 
-app.get('/', (req, res) => {
+
+app.get('/scan', checkAuth, (req, res) => {
+    const DriverInstance = DriverConnection.getInstance();
+    const driver = DriverInstance.driver
     const session = driver.session()
     const nodes = [];
     const links = [];
