@@ -5,7 +5,10 @@ import netifaces as ni
 import socket
 import threading
 import pickle
-
+import neo
+from re import findall
+from uuid import getnode
+import platform
 # TODO: Remove unneeded imports
 
 # List of new hosts to scan
@@ -41,9 +44,29 @@ def get_args():
     return options
 
 
+def get_local_ips():
+    interfaces = ni.interfaces()
+    local_ips = []
+    for face in interfaces:
+        try:
+            ip = ni.ifaddresses(face)[ni.AF_INET][0]['addr']
+            local_ips.append(ip)
+            print(ip)
+        except KeyError:
+            print('badface', face)
+    if '127.0.0.1' in local_ips:
+        local_ips.remove('127.0.0.1')
+    print(local_ips)
+    return local_ips
+
+
 class BaseManager():
     def __init__(self) -> None:
         # Set up connection to the db
+        self.net = neo.Network()
+        mac = ':'.join(findall('..', '%012x' % getnode()))
+        ips = get_local_ips()
+        self.net.create_host(ips, mac, platform.system().lower())
         # Start comunication sockets
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -89,16 +112,17 @@ class BaseManager():
 
     def parse_response(self, response):
         # TODO: Use pickle safely
-        new_h = pickle.loads(response)
+        parsed_res = pickle.loads(response)
         # TODO: Understand how writing to db works and match to it
-        for host in list(new_h.keys()):
+        print(parsed_res)
+        for host in list(parsed_res['hosts'].keys()):
             if host in scanned_hosts:
                 print('Exists')
                 # TODO: Maybe check if there is more info
-                del new_h[host]
+                del parsed_res['hosts'][host]
             else:
-                scanned_hosts[host] = new_h[host]
-        return new_h
+                scanned_hosts[host] = parsed_res['hosts'][host]
+        return parsed_res
 
     def send_scanner(self, ip):
         print('Mock, scanner send to ', ip)
@@ -121,7 +145,10 @@ class BaseManager():
     def write_to_db(self, data):
         # Enter node and relations to db
         # TODO: Handle multi thread writing( because it is done on thread)
-        print('wrote to db:', data)
+        print('wrote to db:')
+        self.net.create_query(data)
+        self.net.conn_query(data)
+        #print('wrote to db:', data)
         pass
 
 

