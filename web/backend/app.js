@@ -26,7 +26,12 @@ if (process.env.NODE_ENV === 'production') {
     app.use(cors(corsOptions))
 }
 
+const { spawn } = require('child_process');
+app.get('/', (req, res) => {
 
+
+
+})
 
 app.post('/auth', (req, res) => {
     const { credentials } = req.body;
@@ -52,12 +57,30 @@ app.post('/logout', (req, res) => {
 
 
 
-app.get('/scan', checkAuth, (req, res) => {
+app.post('/scan', checkAuth, (req, res) => {
     const DriverInstance = DriverConnection.getInstance();
     const driver = DriverInstance.driver
     const session = driver.session()
     const nodes = [];
     const links = [];
+    const { users } = req.body
+    console.log(req.body);
+    // spawn new child process to call the python script
+    const python = spawn('python', ['script.py', JSON.stringify(users)]);
+    var dataToSend;
+    // collect data from script
+    python.stdout.on('data', function (data) {
+        console.log('Pipe data from python script ...');
+        dataToSend = data.toString();
+    });
+    // in close event we are sure that stream from child process is closed
+    python.on('close', (code) => {
+        console.log(`child process close all stdio with code ${code}`);
+        // send data to browser
+        console.log(dataToSend);
+        // res.send(dataToSend)
+    });
+
     session.run("MATCH (n) RETURN n LIMIT 25")
         .then(({ records }) => {
             records.map((node) => {
