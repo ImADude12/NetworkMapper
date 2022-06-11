@@ -10,6 +10,7 @@ import { Image } from "../../Shared/Image";
 import Modal from "./Modal";
 import finger from "../../assets/images/finger.png";
 import { useNavigate } from "react-router-dom";
+import { useLocalStorage } from "../../Hooks/useLocalStorage";
 const GraphWrapper = styled.div`
   height: 800px;
   width: 90%;
@@ -37,7 +38,7 @@ const FingerImg = styled.img`
   transform: rotate(90deg);
   animation: MoveUpDown 1s linear infinite;
   position: absolute;
-  right: 0;
+  right: 10%;
 
   @media ${({ theme }) => theme.media.fromMobile} {
     right: 45%;
@@ -57,15 +58,17 @@ export const Home = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
+  const [users] = useLocalStorage("userList");
   const theme = useTheme();
 
   const navigate = useNavigate();
 
   const onScan = () => {
+    console.log(users);
     setIsStarted(true);
     setIsLoading(true);
     axios
-      .get("http://localhost:3030/scan")
+      .post("http://localhost:3030/scan", { users })
       .then((res) => {
         setData(res.data);
         setIsLoading(false);
