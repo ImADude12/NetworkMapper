@@ -1,3 +1,4 @@
+import base64
 import argparse
 import pickle
 import netifaces as ni
@@ -162,6 +163,48 @@ class NmapScanner():
         # self.os_detection(scanner.all_hosts())
 
 
+class WinRMUtil:
+    def __init__(self, session):
+        self.session = session
+
+    def upload_file(self, local_filename, remote_filename):
+        file = open(local_filename, 'rt')
+        text = file.read()
+        text = text.replace('\n', '\r\n')
+        file.close()
+        self._create_remote_file(remote_filename, text)
+
+    def _create_remote_file(self, remote_filename, text):
+        step = 400
+        utf8 = text.encode("utf8")
+        rs = self.session.run_cmd(
+            'powershell clear-content ' + remote_filename)
+        for i in range(0, len(utf8), step):
+            self._do_put_file(remote_filename, utf8[i:i + step])
+
+    def _do_put_file(self, location, contents):
+        # adapted/copied from https://github.com/diyan/pywinrm/issues/18
+        p1 = """
+$filePath = "{}"
+$s = @"
+{}
+"@""".format(location, base64.b64encode(contents).decode('utf8'))
+
+        p2 = """
+$data = [System.Convert]::FromBase64String($s)
+add-content -value $data -encoding byte -path $filePath
+"""
+        ps_script = p1 + p2
+        encoded_ps = base64.b64encode(
+            ps_script.encode('utf_16_le')).decode('utf8')
+        rs = self.session.run_cmd(
+            'powershell -encodedcommand {0}'.format(encoded_ps))
+        if rs.status_code == 1:
+            print(rs.std_err)
+            return None
+        return rs.std_out
+
+
 class RemoteLogin():
     """
     This class manages the remote login and execution part.
@@ -198,7 +241,7 @@ class RemoteLogin():
                 if self.check_port_open(22):
                     status = self.ssh()
                 elif self.check_port_open(5985):
-                    status = self.windows()
+                    status = self.windows_winrm()
                 else:
                     print(f'{self.server}: Could not run scanner')
         return status
@@ -236,21 +279,29 @@ class RemoteLogin():
             return True
 # 5985
 
-    def windows(self):
+    def windows_winrm(self):
         # try:
         scanner_path = "networkscanner.py"
         for cred in creds:
             try:
-                client = WinClient(self.server, auth=(
-                    cred['user'], cred['pass']))
-                client.copy(scanner_path, scanner_path)
-                c = ps_client(self.server, username=cred,
-                              password=creds[cred])
-                c.connect()
-                stdout, stderr, rc = c.run_executable("cmd.exe",
-                                                      arguments="python3 "+scanner_path)
-                c.remove_service()
-                c.disconnect()
+                s = winrm.Session(self.server,
+                                  auth=(cred['user'], cred['pass']))
+                util = WinRMUtil(s)
+                util.upload_file(scanner_path,
+                                 scanner_path)
+                r = s.run_cmd('type ' + scanner_path,)
+                print(r.std_out)
+                # client = WinClient(self.server, auth=(
+                #     cred['user'], cred['pass']))
+                # client.copy(scanner_path, scanner_path)
+                # c = ps_client(self.server, username=cred,
+                #               password=creds[cred])
+                # c.connect()
+                # stdout, stderr, rc = c.run_executable("cmd.exe",
+                #                                       arguments="python3 "+scanner_path)
+                # c.remove_service()
+                # c.disconnect()
+
                 return True
             except requests.exceptions.ConnectionError as err:
                 print(err)
@@ -297,7 +348,7 @@ def main():
         # TODO: after threads -  Wait for all threads to finish
     new_hosts = {'192.168.1.65': Host(
         '192.168.1.65'), '192.168.1.66': Host('192.168.1.66')}
-    #new_hosts = {}
+    # new_hosts = {}
     # Send results back
     my_data['hosts'] = new_hosts
     # communicator.send_results(my_data)

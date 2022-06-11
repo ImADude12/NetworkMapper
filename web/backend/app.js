@@ -81,9 +81,10 @@ app.post('/scan', checkAuth, (req, res) => {
         // res.send(dataToSend)
     });
 
-    session.run("MATCH (n) RETURN n LIMIT 25")
+    session.run("MATCH (n) RETURN n")
         .then(({ records }) => {
             records.map((node) => {
+                console.log('inside')
                 const { properties, labels, identity } = node.get('n')
                 const nodeToInsert = {
                     id: identity['low'],
