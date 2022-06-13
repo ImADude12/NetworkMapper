@@ -18,31 +18,3 @@ after
 got res
 sending to db
 wrote to db:
-192.168.1.31 connected
-before
-after
-before
-after
-got res
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-Exists
-sending to db
-wrote to db:
-192.168.1.31 connected
-before
-after
-data problem

@@ -6,7 +6,7 @@ class DriverConnection {
         const { username, password } = credentials;
         const token = neo4j.auth.basic(username, password)
         this.driver = neo4j.driver(
-            "neo4j+s://9242d2ae.databases.neo4j.io",
+            "bolt://localhost:7687",
             token
         )
     }
