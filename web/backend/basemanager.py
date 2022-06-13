@@ -4,12 +4,9 @@ import socket
 import threading
 import pickle
 import neo
-from re import findall
-from uuid import getnode
+from getmac import get_mac_address as gma
 import platform
-import json
 import subprocess
-import sys
 import os
 # TODO: Remove unneeded imports
 ips = []
@@ -29,12 +26,6 @@ def print2(text):
     with open('log.txt', 'a') as f:
         f.write(text + "\n")
         print(text)
-
-
-# if len(sys.argv) > 1:
-#     creds = json.loads(sys.argv[1])
-#     print(''.join(creds))
-
 
 class Host():
     def __init__(self, ip, mac=None, os=None) -> None:
@@ -77,14 +68,13 @@ class BaseManager():
         global ips
         # Set up connection to the db
         self.net = neo.Network()
-        mac = ':'.join(findall('..', '%012x' % getnode()))
+        mac = gma()
         ips = get_local_ips()
         self.net.create_host(ips, mac, platform.system().lower())
         # Start comunication sockets
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(BIND_ADDR)
-        # TODO: Verify best number, so that we wont lose connections
         s.listen(100)
         t_hi = threading.Thread(target=self.handle_inputs, args=(s,))
         t_hi.start()
@@ -99,10 +89,6 @@ class BaseManager():
 
     # Thread started for each connection made to our socket
     def handle_scanner_response(self, conn, addr):
-        # TODO: Wrap in try except
-        # TODO: Create handshake
-        # TODO: Verify getting all the data
-        #data = conn.recv(1024)
         data = b''
         while True:
             print2('before')
@@ -144,7 +130,6 @@ class BaseManager():
         out, err = proc.communicate()
         print(out, err)
         print(os.getcwd())
-
         return 1
 
     def write_to_db(self, data):

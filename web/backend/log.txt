@@ -21,4 +21,25 @@ wrote to db:
 172.20.10.2 connected
 before
 after
+before
+after
+got res
+.2 connected
+Exists
+Exists
+sending to db
+after
+data problem
+wrote to db:
+172.20.10.2 connected
+before
+after
+before
+after
+got res
+172.20.10.2 connected
+sending to db
+before
+wrote to db:
+after
 data problem
