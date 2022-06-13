@@ -86,8 +86,30 @@ export const Home = () => {
       <>
         <img style={{ height: "200px", width: "80%" }} alt="" src={props.img} />
         <div style={{ textAlign: "center" }}>
-          <p>{props.ip}</p>
-          <p>{props.os}</p>
+          {props.mac && (
+            <>
+              <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
+                MAC Address
+              </p>
+              <p>{props.mac}</p>
+            </>
+          )}
+          {props.ip && (
+            <>
+              <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
+                IP Address
+              </p>
+              <p>{props.ip}</p>
+            </>
+          )}
+          {props.os && (
+            <>
+              <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
+                Operation System
+              </p>
+              <p>{props.os}</p>
+            </>
+          )}
         </div>
       </>
     );
