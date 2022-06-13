@@ -62,8 +62,8 @@ app.post('/scan', checkAuth, (req, res) => {
     const python = spawn('python', ['basemanager.py', JSON.stringify(users)]);
     python.on('close', (code) => {
         console.log(`child process close all stdio with code ${code}`);
-        res.send()
     });
+    res.send()
 })
 
 app.get('/results', checkAuth, (req, res) => {

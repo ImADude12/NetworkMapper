@@ -68,7 +68,7 @@ export const Home = () => {
     setIsLoading(true);
     axios
       .post("http://localhost:3030/scan", { users })
-      .then(() => onGetResults())
+      .then(() => setTimeout(onGetResults, 10000))
       .catch(() => navigate("/"));
   };
 
