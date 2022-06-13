@@ -99,7 +99,11 @@ export const Home = () => {
               <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
                 IP Address
               </p>
-              <p>{props.ip}</p>
+              {typeof props.ip === typeof "string" ? (
+                <p>{props.ip}</p>
+              ) : (
+                props.ip.map((ip) => <p>{ip}</p>)
+              )}
             </>
           )}
           {props.os && (

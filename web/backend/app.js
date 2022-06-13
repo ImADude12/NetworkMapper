@@ -64,7 +64,6 @@ app.post('/scan', checkAuth, (req, res) => {
     const nodes = [];
     const links = [];
     const { users } = req.body
-    console.log(req.body);
     // spawn new child process to call the python script
     const python = spawn('python', ['basemanager.py', JSON.stringify(users), '>log2.txt']);
     var dataToSend;
