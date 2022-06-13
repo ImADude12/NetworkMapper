@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import linux from "../../assets/icons/linux.svg";
 import windows from "../../assets/icons/windows.svg";
 import unknown from "../../assets/icons/unknown.svg";
+import ios from "../../assets/icons/ios.svg";
 import styled from "styled-components";
 function validate(x, a = 50, b = 450) {
   if (x < a) x = a;
@@ -102,6 +103,8 @@ export const Graph = ({ data, onOpenModal }) => {
             return linux;
           case "windows":
             return windows;
+          case "ios":
+            return ios;
           default:
             return unknown;
         }
