@@ -6,15 +6,72 @@ badface {343F42CA-B288-48B0-B64E-34DF3FC305AA}
 192.168.127.1
 badface {ACA53E99-20F6-45A8-B4CB-42B68E4A8235}
 192.168.40.1
-192.168.1.40
+172.20.10.8
 badface {E6AAE6DA-34F8-4DB5-956E-C9F802BDC9C9}
 127.0.0.1
-192.168.202.1192.168.127.1192.168.40.1192.168.1.40
+192.168.202.1192.168.127.1192.168.40.1172.20.10.8
 192.168.202.1 connected
 before
 after
 before
 after
+got res
+sending to db
+wrote to db:
+172.20.10.2 connected
+before
+after
+before
+after
+got res
+sending to db
+wrote to db:
+127.0.0.1 connected
+before
+after
+before
+after
+got res
+Exists
+Exists
+Exists
+sending to db
+wrote to db:
+172.20.10.2 connected
+before
+after
+data problem
+172.20.10.2 connected
+before
+after
+before
+after
+got res
+sending to db
+wrote to db:
+172.20.10.2 connected
+before
+after
+before
+after
+172.20.10.2 connected
+got res
+Exists
+before
+Exists
+after
+sending to db
+data problem
+wrote to db:
+172.20.10.2 connected
+before
+172.20.10.2 connected
+after
+before
+before
+after
+after
+data problem
 got res
 sending to db
 wrote to db:
