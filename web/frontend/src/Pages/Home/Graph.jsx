@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
-import computer from "../../assets/images/computer.svg";
-import router from "../../assets/images/router.svg";
+import linux from "../../assets/icons/linux.svg";
+import windows from "../../assets/icons/windows.svg";
+import unknown from "../../assets/icons/unknown.svg";
 import styled from "styled-components";
 function validate(x, a = 50, b = 450) {
   if (x < a) x = a;
@@ -94,9 +95,17 @@ export const Graph = ({ data, onOpenModal }) => {
       .attr("height", 24)
       .attr("class", "node-img")
       .call(drag(simulation))
-      .attr("xlink:href", (node) =>
-        node.type === "Computer" ? computer : router
-      )
+      .attr("xlink:href", (node) => {
+        const os = node?.os?.toLowerCase().trim();
+        switch (os) {
+          case "linux":
+            return linux;
+          case "windows":
+            return windows;
+          default:
+            return unknown;
+        }
+      })
       .on("click", function (event, data) {
         const img = d3.select(this).attr("xlink:href");
         onOpenModal({ ...data, img });

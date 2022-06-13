@@ -70,41 +70,39 @@ app.post('/scan', checkAuth, (req, res) => {
     var dataToSend;
     // collect data from script
     python.stdout.on('data', function (data) {
-        console.log('Pipe data from python script ...');
+        // console.log('Pipe data from python script ...');
         dataToSend = data.toString();
     });
     // in close event we are sure that stream from child process is closed
     python.on('close', (code) => {
         console.log(`child process close all stdio with code ${code}`);
         // send data to browser
-        console.log(dataToSend);
+        // console.log(dataToSend);
         // res.send(dataToSend)
     });
 
     session.run("MATCH (n) RETURN n")
         .then(({ records }) => {
             records.map((node) => {
-                console.log('inside')
                 const { properties, labels, identity } = node.get('n')
                 const nodeToInsert = {
                     id: identity['low'],
                     os: properties.os,
                     ip: properties.ip,
-                    //     // mac: properties.mac,
+                    mac: properties.mac,
                     type: labels[0]
                 }
                 nodes.unshift(nodeToInsert)
             })
             const session = driver.session()
-            session.run(`MATCH (m)-->(n) RETURN id(m),id(n)`).then(({ records }) => {
-                if (records[0]) {
-                    const source = records[0].get('id(m)')['low'];
-                    const target = records[0].get('id(n)')['low'];
+            session.run(`MATCH (m)-[r]->(n) RETURN id(m),id(n)`).then(({ records }) => {
+                records.forEach(record => {
+                    const source = record.get('id(m)')['low'];
+                    const target = record.get('id(n)')['low'];
                     links.push({
                         source, target
                     })
-                }
-               
+                })
                 res.send({ nodes, links })
             }).then(() => session.close())
         }).then(() => session.close())
