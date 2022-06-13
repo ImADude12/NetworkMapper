@@ -64,16 +64,21 @@ export const Home = () => {
   const navigate = useNavigate();
 
   const onScan = () => {
-    console.log(users);
     setIsStarted(true);
     setIsLoading(true);
     axios
       .post("http://localhost:3030/scan", { users })
-      .then((res) => {
-        setData(res.data);
-        setIsLoading(false);
-      })
+      .then(() => onGetResults())
       .catch(() => navigate("/"));
+  };
+
+  const onGetResults = () => {
+    setIsLoading(true);
+    axios.get("http://localhost:3030/results").then((res) => {
+      setData(res.data);
+      setIsLoading(false);
+      setTimeout(onGetResults, 10000);
+    });
   };
 
   const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +86,6 @@ export const Home = () => {
 
   const onOpenModal = useCallback((props) => {
     setIsOpen(true);
-    console.log(props);
     setModalChildren(
       <>
         <img style={{ height: "200px", width: "80%" }} alt="" src={props.img} />
@@ -99,7 +103,11 @@ export const Home = () => {
               <p style={{ textDecoration: "underline", fontWeight: "bold" }}>
                 IP Address
               </p>
-              <p>{props.ip}</p>
+              {typeof props.ip === typeof "string" ? (
+                <p>{props.ip}</p>
+              ) : (
+                props.ip.map((ip) => <p>{ip}</p>)
+              )}
             </>
           )}
           {props.os && (
@@ -137,7 +145,7 @@ export const Home = () => {
             </FingerContainer>
           )}
         </GraphWrapper>
-        <Button size="lg" onClick={() => onScan()}>
+        <Button disabled={isStarted} size="lg" onClick={() => onScan()}>
           Scan
           <Image style={{ marginInlineStart: theme.spacing(1) }} src={search} />
         </Button>

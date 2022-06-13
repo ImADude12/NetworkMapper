@@ -58,29 +58,20 @@ app.post('/logout', (req, res) => {
 
 
 app.post('/scan', checkAuth, (req, res) => {
+    const { users } = req.body
+    const python = spawn('python', ['basemanager.py', JSON.stringify(users)]);
+    python.on('close', (code) => {
+        console.log(`child process close all stdio with code ${code}`);
+        res.send()
+    });
+})
+
+app.get('/results', checkAuth, (req, res) => {
     const DriverInstance = DriverConnection.getInstance();
     const driver = DriverInstance.driver
     const session = driver.session()
     const nodes = [];
     const links = [];
-    const { users } = req.body
-    console.log(req.body);
-    // spawn new child process to call the python script
-    const python = spawn('python', ['basemanager.py', JSON.stringify(users), '>log2.txt']);
-    var dataToSend;
-    // collect data from script
-    python.stdout.on('data', function (data) {
-        // console.log('Pipe data from python script ...');
-        dataToSend = data.toString();
-    });
-    // in close event we are sure that stream from child process is closed
-    python.on('close', (code) => {
-        console.log(`child process close all stdio with code ${code}`);
-        // send data to browser
-        // console.log(dataToSend);
-        // res.send(dataToSend)
-    });
-
     session.run("MATCH (n) RETURN n")
         .then(({ records }) => {
             records.map((node) => {
