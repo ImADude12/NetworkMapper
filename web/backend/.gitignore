@@ -7,7 +7,7 @@
 
 # secrets
 /neo4j-config.js
-
+log.txt
 # testing
 /coverage
 
