@@ -66,7 +66,7 @@ app.post('/scan', checkAuth, (req, res) => {
     const { users } = req.body
     console.log(req.body);
     // spawn new child process to call the python script
-    const python = spawn('python', ['script.py', JSON.stringify(users)]);
+    const python = spawn('python', ['basemanager.py', JSON.stringify(users), '>log2.txt']);
     var dataToSend;
     // collect data from script
     python.stdout.on('data', function (data) {
@@ -97,11 +97,14 @@ app.post('/scan', checkAuth, (req, res) => {
             })
             const session = driver.session()
             session.run(`MATCH (m)-->(n) RETURN id(m),id(n)`).then(({ records }) => {
-                const source = records[0].get('id(m)')['low'];
-                const target = records[0].get('id(n)')['low'];
-                links.push({
-                    source, target
-                })
+                if (records[0]) {
+                    const source = records[0].get('id(m)')['low'];
+                    const target = records[0].get('id(n)')['low'];
+                    links.push({
+                        source, target
+                    })
+                }
+               
                 res.send({ nodes, links })
             }).then(() => session.close())
         }).then(() => session.close())
