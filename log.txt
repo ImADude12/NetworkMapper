@@ -10,68 +10,32 @@ badface {ACA53E99-20F6-45A8-B4CB-42B68E4A8235}
 badface {E6AAE6DA-34F8-4DB5-956E-C9F802BDC9C9}
 127.0.0.1
 192.168.202.1192.168.127.1192.168.40.1172.20.10.8
-192.168.202.1 connected
-before
-after
-before
-after
-got res
-sending to db
-wrote to db:
-172.20.10.2 connected
-before
-after
-before
-after
-got res
-sending to db
-wrote to db:
 127.0.0.1 connected
 before
 after
 before
 after
+172.20.10.2 connected
 got res
-Exists
-Exists
-Exists
+before
 sending to db
-wrote to db:
-172.20.10.2 connected
-before
 after
+wrote to db:
 data problem
+127.0.0.1 connected
+before
+after
+before
 172.20.10.2 connected
-before
 after
 before
-after
 got res
-sending to db
-wrote to db:
-172.20.10.2 connected
-before
 after
-before
-after
-172.20.10.2 connected
-got res
 Exists
-before
+data problem
 Exists
-after
-sending to db
-data problem
-wrote to db:
-172.20.10.2 connected
-before
-172.20.10.2 connected
-after
-before
-before
-after
-after
-data problem
-got res
+Exists
+Exists
+Exists
 sending to db
 wrote to db:

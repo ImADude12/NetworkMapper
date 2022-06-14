@@ -73,10 +73,10 @@ export const Home = () => {
   };
 
   const onGetResults = () => {
-    setIsLoading(true);
     axios.get("http://localhost:3030/results").then((res) => {
+      setIsLoading(true);
+      setTimeout(()=>setIsLoading(false), 500);
       setData(res.data);
-      setIsLoading(false);
       setTimeout(onGetResults, 10000);
     });
   };

